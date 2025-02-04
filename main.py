@@ -34,6 +34,8 @@ game_started = False
 
 start_image = cv2.imread('start_image.jpg')
 
+
+
 score = 0
 
 def apply_face_zoom(frame, zoom_level=1.3, zoom_speed=0.0):
@@ -41,7 +43,7 @@ def apply_face_zoom(frame, zoom_level=1.3, zoom_speed=0.0):
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
 
     if len(faces) > 0:
-        x, y, w, h = faces[0]
+        x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
         zoom_factor = 1.5
         cx, cy = x + w // 2, y + h // 2
         zoom_size = max(w, h) * zoom_factor
@@ -99,8 +101,8 @@ def calculate_iris_center(face_landmarks, iris_indices, frame):
 
 def estimate_gaze_direction(left_iris_center, right_iris_center, frame):
     h, w, _ = frame.shape
-    left_ratio = left_iris_center[0] / w - 0.15
-    right_ratio = right_iris_center[0] / w + 0.15
+    left_ratio = left_iris_center[0] / w - 0.14
+    right_ratio = right_iris_center[0] / w + 0.14
     if left_ratio < 0.5 and right_ratio < 0.5:
         return "Links"
     elif left_ratio > 0.5 and right_ratio > 0.5:
@@ -154,12 +156,12 @@ def restart_game():
     pygame.mixer.music.stop()
     pygame.mixer.music.play(-1)
 
-webcam = cv2.VideoCapture(1)
+webcam = cv2.VideoCapture(0)
 
 while True:
     ret, frame = webcam.read()
-    frame = cv2.resize(frame, (640, 480))
-
+    frame = cv2.flip(frame,1)
+    frame = cv2.resize(frame, (width, height))
     if not ret:
         break
 
