@@ -158,6 +158,8 @@ webcam = cv2.VideoCapture(1)
 
 while True:
     ret, frame = webcam.read()
+    frame = cv2.resize(frame, (640, 480))
+
     if not ret:
         break
 
