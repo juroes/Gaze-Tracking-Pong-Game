@@ -15,7 +15,14 @@ face_mesh = mp_face_mesh.FaceMesh(refine_landmarks=True)
 LEFT_IRIS = [474, 475, 476, 477]
 RIGHT_IRIS = [469, 470, 471, 472]
 
-width, height = 640, 480
+webcam = cv2.VideoCapture(0)
+ret, frame = webcam.read()
+if not ret:
+    print("Fehler beim Zugriff auf die Kamera.")
+    exit()
+
+height, width, _ = frame.shape
+
 paddle_width = 100
 paddle_height = 20
 paddle_y = height - 30
@@ -31,6 +38,7 @@ game_over = False
 game_started = False
 
 start_image = cv2.imread('start_image.jpg')
+start_image = cv2.resize(start_image, (width, height))
 
 score = 0
 
@@ -59,8 +67,7 @@ def calculate_iris_center(face_landmarks, iris_indices, frame):
     x_coords = [face_landmarks.landmark[i].x * w for i in iris_indices]
     y_coords = [face_landmarks.landmark[i].y * h for i in iris_indices]
     if x_coords and y_coords:
-        cx, cy = int(sum(x_coords) / len(x_coords)), int(sum(y_coords) / len(y_coords))
-        return (cx, cy)
+        return int(sum(x_coords) / len(x_coords)), int(sum(y_coords) / len(y_coords))
     return None
 
 def estimate_gaze_direction(left_iris_center, right_iris_center, face_landmarks, frame):
@@ -75,9 +82,9 @@ def estimate_gaze_direction(left_iris_center, right_iris_center, face_landmarks,
     eye_center_x = (left_iris_center[0] + right_iris_center[0]) / 2
     relative_position = (eye_center_x - left_face_edge.x * w) / face_width
 
-    if relative_position < 0.46:
+    if relative_position < 0.47:
         return "Links"
-    elif relative_position > 0.54:
+    elif relative_position > 0.53:
         return "Rechts"
     else:
         return "Zentrum"
@@ -103,9 +110,19 @@ def move_ball():
     if ball_x - ball_radius <= 0 or ball_x + ball_radius >= width:
         ball_dx = -ball_dx
 
-    if paddle_y < ball_y + ball_radius and paddle_y + paddle_height > ball_y - ball_radius:
+    if paddle_y < ball_y + ball_radius <= paddle_y + paddle_height:
         if paddle_x < ball_x < paddle_x + paddle_width:
             ball_dy = -ball_dy
+            score += 1
+            pygame.mixer.Sound("boing.mp3").play()
+
+        elif paddle_x <= ball_x - ball_radius <= paddle_x + paddle_width // 3:
+            ball_dx = -ball_dx
+            score += 1
+            pygame.mixer.Sound("boing.mp3").play()
+
+        elif paddle_x + 2 * paddle_width // 3 <= ball_x + ball_radius <= paddle_x + paddle_width:
+            ball_dx = -ball_dx
             score += 1
             pygame.mixer.Sound("boing.mp3").play()
 
@@ -128,12 +145,9 @@ def restart_game():
     pygame.mixer.music.stop()
     pygame.mixer.music.play(-1)
 
-webcam = cv2.VideoCapture(0)
-
 while True:
     ret, frame = webcam.read()
     frame = cv2.flip(frame,1)
-    frame = cv2.resize(frame, (width, height))
     if not ret:
         break
 
